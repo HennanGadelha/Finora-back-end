@@ -25,6 +25,11 @@ class EmailTest {
 	}
 
 	@Test
+	void deveRejeitarEmailEmBranco() {
+		assertThrows(ErroDeDominioException.class, () -> new Email("   "));
+	}
+
+	@Test
 	void deveRejeitarEmailMuitoLongo() {
 		String email = "a".repeat(312) + "@example.com";
 

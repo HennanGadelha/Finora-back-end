@@ -93,4 +93,20 @@ class UsuarioTest {
 		assertThrows(ErroDeDominioException.class,
 				() -> Usuario.criar("Pessoa", "pessoa@exemplo.com", null));
 	}
+
+	@Test
+	void deveRejeitarEstadoPersistidoInconsistente() {
+		Email email = new Email("pessoa@exemplo.com");
+
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
+				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", null, "BRL",
+				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
+				"America/Sao_Paulo", null, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
+				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, CRIACAO));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
+				"America/Sao_Paulo", StatusUsuario.INATIVO, CRIACAO, CRIACAO, null));
+	}
 }

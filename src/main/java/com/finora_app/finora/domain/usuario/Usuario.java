@@ -40,6 +40,23 @@ public final class Usuario {
 		return new Usuario(UUID.randomUUID(), nome, email, MOEDA_PADRAO, FUSO_HORARIO_PADRAO, momentoCriacao);
 	}
 
+	public static Usuario reidratar(UUID id, String nome, Email email, String moeda, String fusoHorario,
+			StatusUsuario status, Instant createdAt, Instant updatedAt, Instant deactivatedAt) {
+		if (email == null || status == null) {
+			throw new ErroDeDominioException("Dados persistidos do usuario invalidos");
+		}
+
+		Usuario usuario = new Usuario(validarId(id), nome, email, moeda, fusoHorario, createdAt);
+		usuario.status = status;
+		usuario.updatedAt = validarInstante(updatedAt, "momento de atualizacao");
+		usuario.deactivatedAt = deactivatedAt;
+		if ((status == StatusUsuario.ATIVO && deactivatedAt != null)
+				|| (status == StatusUsuario.INATIVO && deactivatedAt == null)) {
+			throw new ErroDeDominioException("Estado persistido do usuario inconsistente");
+		}
+		return usuario;
+	}
+
 	public void atualizarDadosCadastrais(String nome, String moeda, String fusoHorario, Instant momentoAtualizacao) {
 		String nomeValidado = validarNome(nome);
 		String moedaValidada = validarMoeda(moeda);
@@ -101,6 +118,13 @@ public final class Usuario {
 
 	public boolean estaAtivo() {
 		return status == StatusUsuario.ATIVO;
+	}
+
+	private static UUID validarId(UUID id) {
+		if (id == null) {
+			throw new ErroDeDominioException("Identidade do usuario e obrigatoria");
+		}
+		return id;
 	}
 
 	private static String validarNome(String nome) {

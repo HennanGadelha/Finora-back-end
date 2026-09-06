@@ -19,7 +19,7 @@ import com.finora_app.finora.domain.usuario.Email;
 import com.finora_app.finora.domain.usuario.StatusUsuario;
 import com.finora_app.finora.domain.usuario.Usuario;
 
-@SpringBootTest
+@SpringBootTest(properties = "JWT_SECRET=test-only-jwt-secret-with-at-least-32-bytes")
 class JdbcUsuarioRepositoryIntegrationTest {
 
 	private static final Instant CRIACAO = Instant.parse("2026-01-01T10:00:00Z");

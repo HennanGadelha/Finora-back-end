@@ -96,7 +96,14 @@ No Linux/macOS:
 ./gradlew bootRun
 ```
 
-A aplicação inicia em `http://localhost:8080`. Quando a documentação OpenAPI for adicionada, seus caminhos serão documentados aqui pela Task-010.
+A aplicação inicia em `http://localhost:8080`.
+
+Após a inicialização, a documentação está disponível em:
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- Contrato OpenAPI: `http://localhost:8080/v3/api-docs`
+
+A Swagger UI é pública para permitir a consulta do contrato, mas os endpoints protegidos continuam exigindo Bearer JWT.
 
 Sem um endpoint público de health check habilitado, confirme a disponibilidade observando a inicialização do Spring Boot ou fazendo uma requisição HTTP ao servidor:
 

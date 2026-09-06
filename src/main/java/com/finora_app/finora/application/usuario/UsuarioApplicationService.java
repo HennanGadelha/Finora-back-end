@@ -90,6 +90,19 @@ public class UsuarioApplicationService {
 		return PerfilUsuarioResponse.de(usuario);
 	}
 
+	@Transactional
+	public InativacaoContaResponse inativarConta(UUID usuarioId, InativarContaRequest request) {
+		if (request == null || !request.confirmar()) {
+			throw new IllegalArgumentException("A confirmacao da inativacao e obrigatoria");
+		}
+		Usuario usuario = buscarUsuarioAtivo(usuarioId);
+		Instant momentoInativacao = Instant.now(clock);
+		usuario.inativar(momentoInativacao);
+		usuarioRepository.inativar(usuario, momentoInativacao);
+		LOGGER.info("event=user_account_deactivated userId={}", usuario.id());
+		return new InativacaoContaResponse(usuario.status().name(), usuario.deactivatedAt());
+	}
+
 	private Usuario buscarUsuarioAtivo(UUID usuarioId) {
 		if (usuarioId == null) {
 			throw new IllegalArgumentException("Identidade autenticada e obrigatoria");

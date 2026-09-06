@@ -42,4 +42,10 @@ public class UsuarioController {
 			@RequestBody AtualizarPerfilRequest request) {
 		return service.atualizarPerfil(usuarioId, request);
 	}
+
+	@PostMapping("/users/me/deactivate")
+	public InativacaoContaResponse inativarConta(@AuthenticationPrincipal UUID usuarioId,
+			@RequestBody InativarContaRequest request) {
+		return service.inativarConta(usuarioId, request);
+	}
 }

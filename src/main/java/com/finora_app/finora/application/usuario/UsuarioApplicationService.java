@@ -2,6 +2,7 @@ package com.finora_app.finora.application.usuario;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ import com.finora_app.finora.domain.usuario.Email;
 import com.finora_app.finora.repository.usuario.EmailJaCadastradoException;
 import com.finora_app.finora.repository.usuario.UsuarioPersistido;
 import com.finora_app.finora.repository.usuario.UsuarioRepository;
+import com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException;
 import com.finora_app.finora.security.JwtService;
 import com.finora_app.finora.security.SenhaService;
 
@@ -68,6 +70,37 @@ public class UsuarioApplicationService {
 		String token = jwtService.emitir(persistido.usuario().id());
 		LOGGER.info("event=user_authenticated userId={}", persistido.usuario().id());
 		return new AutenticacaoResponse(token);
+	}
+
+	@Transactional(readOnly = true)
+	public PerfilUsuarioResponse consultarPerfil(UUID usuarioId) {
+		Usuario usuario = buscarUsuarioAtivo(usuarioId);
+		return PerfilUsuarioResponse.de(usuario);
+	}
+
+	@Transactional
+	public PerfilUsuarioResponse atualizarPerfil(UUID usuarioId, AtualizarPerfilRequest request) {
+		if (request == null) {
+			throw new IllegalArgumentException("Dados do perfil sao obrigatorios");
+		}
+		Usuario usuario = buscarUsuarioAtivo(usuarioId);
+		usuario.atualizarDadosCadastrais(request.nome(), request.moeda(), request.fusoHorario(), Instant.now(clock));
+		usuarioRepository.atualizar(usuario);
+		LOGGER.info("event=user_profile_updated userId={}", usuario.id());
+		return PerfilUsuarioResponse.de(usuario);
+	}
+
+	private Usuario buscarUsuarioAtivo(UUID usuarioId) {
+		if (usuarioId == null) {
+			throw new IllegalArgumentException("Identidade autenticada e obrigatoria");
+		}
+		Usuario usuario = usuarioRepository.buscarPorId(usuarioId)
+				.map(UsuarioPersistido::usuario)
+				.orElseThrow(() -> new UsuarioNaoEncontradoException("Usuario nao encontrado"));
+		if (!usuario.estaAtivo()) {
+			throw new UsuarioNaoEncontradoException("Usuario ativo nao encontrado");
+		}
+		return usuario;
 	}
 
 	private static void validarCadastro(CadastroUsuarioRequest request) {

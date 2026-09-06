@@ -46,7 +46,7 @@ public class UsuarioApplicationService {
 	@Transactional
 	public CadastroUsuarioResponse cadastrar(CadastroUsuarioRequest request) {
 		validarCadastro(request);
-		Usuario usuario = Usuario.criar(request.nome(), request.email(), Instant.now(clock));
+		Usuario usuario = Usuario.criar(request.nome(), request.email(), request.dataNascimento(), Instant.now(clock));
 		String senhaHash = senhaService.gerarHash(request.senha());
 		try {
 			usuarioRepository.salvar(usuario, senhaHash);
@@ -84,7 +84,7 @@ public class UsuarioApplicationService {
 			throw new IllegalArgumentException("Dados do perfil sao obrigatorios");
 		}
 		Usuario usuario = buscarUsuarioAtivo(usuarioId);
-		usuario.atualizarDadosCadastrais(request.nome(), request.moeda(), request.fusoHorario(), Instant.now(clock));
+		usuario.atualizarDadosCadastrais(request.nome(), request.dataNascimento(), Instant.now(clock));
 		usuarioRepository.atualizar(usuario);
 		LOGGER.info("event=user_profile_updated userId={}", usuario.id());
 		return PerfilUsuarioResponse.de(usuario);
@@ -117,8 +117,9 @@ public class UsuarioApplicationService {
 	}
 
 	private static void validarCadastro(CadastroUsuarioRequest request) {
-		if (request == null || vazio(request.nome()) || vazio(request.email()) || vazio(request.senha())) {
-			throw new IllegalArgumentException("Nome, e-mail e senha sao obrigatorios");
+		if (request == null || vazio(request.nome()) || vazio(request.email()) || vazio(request.senha())
+				|| request.dataNascimento() == null) {
+			throw new IllegalArgumentException("Nome, e-mail, senha e data de nascimento sao obrigatorios");
 		}
 	}
 

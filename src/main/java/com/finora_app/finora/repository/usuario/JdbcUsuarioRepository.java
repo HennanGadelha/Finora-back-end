@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,7 +20,7 @@ import com.finora_app.finora.domain.usuario.Usuario;
 @Repository
 public class JdbcUsuarioRepository implements UsuarioRepository {
 
-	private static final String COLUNAS = "id, name, email, password_hash, currency, timezone, status, "
+	private static final String COLUNAS = "id, name, email, password_hash, birth_date, status, "
 			+ "created_at, updated_at, deactivated_at";
 
 	private static final String BUSCAR_POR_EMAIL = "SELECT " + COLUNAS + " FROM users WHERE email = ?";
@@ -34,11 +35,11 @@ public class JdbcUsuarioRepository implements UsuarioRepository {
 	@Override
 	public void salvar(Usuario usuario, String senhaHash) {
 		validarEntrada(usuario, senhaHash);
-		String sql = "INSERT INTO users (id, name, email, password_hash, currency, timezone, status, created_at, updated_at) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String sql = "INSERT INTO users (id, name, email, password_hash, birth_date, status, created_at, updated_at) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
 			jdbcTemplate.update(sql, usuario.id(), usuario.nome(), usuario.email().valor(), senhaHash,
-					usuario.moeda(), usuario.fusoHorario(), "ACTIVE", Timestamp.from(usuario.createdAt()),
+					usuario.dataNascimento(), "ACTIVE", Timestamp.from(usuario.createdAt()),
 					Timestamp.from(usuario.updatedAt()));
 		} catch (DataIntegrityViolationException exception) {
 			if (exception.getMessage() != null && exception.getMessage().contains("users_email_unique")) {
@@ -69,8 +70,8 @@ public class JdbcUsuarioRepository implements UsuarioRepository {
 		if (usuario == null) {
 			throw new IllegalArgumentException("Usuario e obrigatorio");
 		}
-		String sql = "UPDATE users SET name = ?, currency = ?, timezone = ? WHERE id = ?";
-		int alterados = jdbcTemplate.update(sql, usuario.nome(), usuario.moeda(), usuario.fusoHorario(), usuario.id());
+		String sql = "UPDATE users SET name = ?, birth_date = ? WHERE id = ?";
+		int alterados = jdbcTemplate.update(sql, usuario.nome(), usuario.dataNascimento(), usuario.id());
 		if (alterados == 0) {
 			throw new UsuarioNaoEncontradoException("Usuario nao encontrado");
 		}
@@ -114,8 +115,7 @@ public class JdbcUsuarioRepository implements UsuarioRepository {
 					resultSet.getObject("id", UUID.class),
 					resultSet.getString("name"),
 					new Email(resultSet.getString("email")),
-					resultSet.getString("currency"),
-					resultSet.getString("timezone"),
+					resultSet.getObject("birth_date", LocalDate.class),
 					statusDoBanco(resultSet.getString("status")),
 					resultSet.getTimestamp("created_at").toInstant(),
 					resultSet.getTimestamp("updated_at").toInstant(),

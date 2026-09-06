@@ -1,52 +1,48 @@
 package com.finora_app.finora.domain.usuario;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public final class Usuario {
-
-	public static final String MOEDA_PADRAO = "BRL";
-	public static final String FUSO_HORARIO_PADRAO = "America/Sao_Paulo";
 
 	private final UUID id;
 	private final Email email;
 	private final Instant createdAt;
 	private String nome;
-	private String moeda;
-	private String fusoHorario;
+	private LocalDate dataNascimento;
 	private StatusUsuario status;
 	private Instant updatedAt;
 	private Instant deactivatedAt;
 
-	private Usuario(UUID id, String nome, Email email, String moeda, String fusoHorario, Instant momentoCriacao) {
+	private Usuario(UUID id, String nome, Email email, LocalDate dataNascimento, Instant momentoCriacao) {
 		this.id = id;
 		this.nome = validarNome(nome);
 		this.email = email;
-		this.moeda = validarMoeda(moeda);
-		this.fusoHorario = validarFusoHorario(fusoHorario);
+		this.dataNascimento = validarDataNascimento(dataNascimento);
 		this.createdAt = validarInstante(momentoCriacao, "momento de criacao");
 		this.updatedAt = this.createdAt;
 		this.status = StatusUsuario.ATIVO;
 	}
 
-	public static Usuario criar(String nome, String email, Instant momentoCriacao) {
-		return criar(nome, new Email(email), momentoCriacao);
+	public static Usuario criar(String nome, String email, LocalDate dataNascimento, Instant momentoCriacao) {
+		return criar(nome, new Email(email), dataNascimento, momentoCriacao);
 	}
 
-	public static Usuario criar(String nome, Email email, Instant momentoCriacao) {
+	public static Usuario criar(String nome, Email email, LocalDate dataNascimento, Instant momentoCriacao) {
 		if (email == null) {
 			throw new ErroDeDominioException("E-mail e obrigatorio");
 		}
-		return new Usuario(UUID.randomUUID(), nome, email, MOEDA_PADRAO, FUSO_HORARIO_PADRAO, momentoCriacao);
+		return new Usuario(UUID.randomUUID(), nome, email, dataNascimento, momentoCriacao);
 	}
 
-	public static Usuario reidratar(UUID id, String nome, Email email, String moeda, String fusoHorario,
-			StatusUsuario status, Instant createdAt, Instant updatedAt, Instant deactivatedAt) {
+	public static Usuario reidratar(UUID id, String nome, Email email, LocalDate dataNascimento, StatusUsuario status,
+			Instant createdAt, Instant updatedAt, Instant deactivatedAt) {
 		if (email == null || status == null) {
 			throw new ErroDeDominioException("Dados persistidos do usuario invalidos");
 		}
 
-		Usuario usuario = new Usuario(validarId(id), nome, email, moeda, fusoHorario, createdAt);
+		Usuario usuario = new Usuario(validarId(id), nome, email, dataNascimento, createdAt);
 		usuario.status = status;
 		usuario.updatedAt = validarInstante(updatedAt, "momento de atualizacao");
 		usuario.deactivatedAt = deactivatedAt;
@@ -57,15 +53,13 @@ public final class Usuario {
 		return usuario;
 	}
 
-	public void atualizarDadosCadastrais(String nome, String moeda, String fusoHorario, Instant momentoAtualizacao) {
+	public void atualizarDadosCadastrais(String nome, LocalDate dataNascimento, Instant momentoAtualizacao) {
 		String nomeValidado = validarNome(nome);
-		String moedaValidada = validarMoeda(moeda);
-		String fusoHorarioValidado = validarFusoHorario(fusoHorario);
+		LocalDate dataNascimentoValidada = validarDataNascimento(dataNascimento);
 		Instant instanteValidado = validarInstante(momentoAtualizacao, "momento de atualizacao");
 
 		this.nome = nomeValidado;
-		this.moeda = moedaValidada;
-		this.fusoHorario = fusoHorarioValidado;
+		this.dataNascimento = dataNascimentoValidada;
 		this.updatedAt = instanteValidado;
 	}
 
@@ -92,12 +86,8 @@ public final class Usuario {
 		return email;
 	}
 
-	public String moeda() {
-		return moeda;
-	}
-
-	public String fusoHorario() {
-		return fusoHorario;
+	public LocalDate dataNascimento() {
+		return dataNascimento;
 	}
 
 	public StatusUsuario status() {
@@ -134,18 +124,11 @@ public final class Usuario {
 		return nome.trim();
 	}
 
-	private static String validarMoeda(String moeda) {
-		if (!MOEDA_PADRAO.equals(moeda)) {
-			throw new ErroDeDominioException("Moeda deve ser BRL");
+	private static LocalDate validarDataNascimento(LocalDate dataNascimento) {
+		if (dataNascimento == null) {
+			throw new ErroDeDominioException("Data de nascimento e obrigatoria");
 		}
-		return moeda;
-	}
-
-	private static String validarFusoHorario(String fusoHorario) {
-		if (!FUSO_HORARIO_PADRAO.equals(fusoHorario)) {
-			throw new ErroDeDominioException("Fuso horario deve ser America/Sao_Paulo");
-		}
-		return fusoHorario;
+		return dataNascimento;
 	}
 
 	private static Instant validarInstante(Instant instante, String descricao) {

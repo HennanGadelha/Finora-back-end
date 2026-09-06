@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,10 +45,26 @@ class UsuarioControllerTest {
 
 		mockMvc.perform(post("/api/auth/register")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"nome\":\"Pessoa\",\"email\":\"pessoa@exemplo.com\",\"senha\":\"senha\"}"))
+				.content("{\"nome\":\"Pessoa\",\"email\":\"pessoa@exemplo.com\",\"senha\":\"senha\",\"dataNascimento\":\"01/01/1990\"}"))
 				.andExpect(status().isCreated())
 				.andExpect(content().string(not(containsString("senha"))))
 				.andExpect(content().string(not(containsString("hash"))));
+	}
+
+	@Test
+	void deveRejeitarDataDeNascimentoInvalida() throws Exception {
+		mockMvc.perform(post("/api/auth/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"nome\":\"Pessoa\",\"email\":\"pessoa@exemplo.com\",\"senha\":\"senha\",\"dataNascimento\":\"31/02/1990\"}"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void deveRejeitarCamposRemovidosDoCadastro() throws Exception {
+		mockMvc.perform(post("/api/auth/register")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"nome\":\"Pessoa\",\"email\":\"pessoa@exemplo.com\",\"senha\":\"senha\",\"dataNascimento\":\"01/01/1990\",\"moeda\":\"BRL\"}"))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -84,9 +101,9 @@ class UsuarioControllerTest {
 	void deveConsultarEAtualizarSomenteOUsuarioAutenticado() throws Exception {
 		UUID id = UUID.randomUUID();
 		when(service.consultarPerfil(id)).thenReturn(new PerfilUsuarioResponse(id, "Pessoa", "pessoa@exemplo.com",
-				"BRL", "America/Sao_Paulo", "ATIVO", null, null));
+				LocalDate.of(1990, 1, 1), "ATIVO", null, null));
 		when(service.atualizarPerfil(any(), any())).thenReturn(new PerfilUsuarioResponse(id, "Pessoa Atualizada",
-				"pessoa@exemplo.com", "BRL", "America/Sao_Paulo", "ATIVO", null, null));
+				"pessoa@exemplo.com", LocalDate.of(1990, 1, 2), "ATIVO", null, null));
 		SecurityContextHolder.getContext().setAuthentication(
 				new UsernamePasswordAuthenticationToken(id, null));
 
@@ -95,7 +112,7 @@ class UsuarioControllerTest {
 				.andExpect(content().string(not(containsString("hash"))))
 				.andExpect(content().string(not(containsString("senha"))));
 		mockMvc.perform(put("/api/users/me").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"nome\":\"Pessoa Atualizada\",\"moeda\":\"BRL\",\"fusoHorario\":\"America/Sao_Paulo\"}"))
+				.content("{\"nome\":\"Pessoa Atualizada\",\"dataNascimento\":\"02/01/1990\"}"))
 				.andExpect(status().isOk());
 		org.mockito.Mockito.verify(service).consultarPerfil(id);
 		org.mockito.Mockito.verify(service).atualizarPerfil(org.mockito.ArgumentMatchers.eq(id), any());

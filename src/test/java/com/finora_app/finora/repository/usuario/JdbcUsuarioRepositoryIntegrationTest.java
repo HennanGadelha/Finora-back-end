@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ import com.finora_app.finora.domain.usuario.Usuario;
 class JdbcUsuarioRepositoryIntegrationTest {
 
 	private static final Instant CRIACAO = Instant.parse("2026-01-01T10:00:00Z");
+	private static final LocalDate DATA_NASCIMENTO = LocalDate.of(1990, 1, 1);
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -70,7 +72,7 @@ class JdbcUsuarioRepositoryIntegrationTest {
 	void deveAtualizarSomenteDadosCadastrais() {
 		Usuario usuario = criarUsuario("pessoa@exemplo.com");
 		repository.salvar(usuario, "hash-original");
-		usuario.atualizarDadosCadastrais("Nome Atualizado", "BRL", "America/Sao_Paulo",
+		usuario.atualizarDadosCadastrais("Nome Atualizado", DATA_NASCIMENTO.plusDays(1),
 				Instant.parse("2026-01-02T10:00:00Z"));
 
 		repository.atualizar(usuario);
@@ -119,6 +121,6 @@ class JdbcUsuarioRepositoryIntegrationTest {
 	}
 
 	private static Usuario criarUsuario(String email) {
-		return Usuario.criar("Pessoa Finora", email, CRIACAO);
+		return Usuario.criar("Pessoa Finora", email, DATA_NASCIMENTO, CRIACAO);
 	}
 }

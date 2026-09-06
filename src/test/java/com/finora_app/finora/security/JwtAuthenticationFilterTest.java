@@ -66,7 +66,7 @@ class JwtAuthenticationFilterTest {
 	@Test
 	void deveAutenticarTokenDeUsuarioAtivo() throws Exception {
 		UUID usuarioId = UUID.randomUUID();
-		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", Instant.now());
+		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", java.time.LocalDate.of(1990, 1, 1), Instant.now());
 		UsuarioPersistido persistido = new UsuarioPersistido(usuarioComId(usuario, usuarioId), "hash");
 		when(repository.buscarPorId(usuarioId)).thenReturn(Optional.of(persistido));
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -85,7 +85,7 @@ class JwtAuthenticationFilterTest {
 	@Test
 	void deveRejeitarTokenDeUsuarioInativo() throws Exception {
 		UUID usuarioId = UUID.randomUUID();
-		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", Instant.now());
+		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", java.time.LocalDate.of(1990, 1, 1), Instant.now());
 		usuario.inativar(Instant.now());
 		when(repository.buscarPorId(usuarioId)).thenReturn(Optional.of(new UsuarioPersistido(
 				usuarioComId(usuario, usuarioId), "hash")));
@@ -115,7 +115,7 @@ class JwtAuthenticationFilterTest {
 	}
 
 	private static Usuario usuarioComId(Usuario usuario, UUID id) {
-		return Usuario.reidratar(id, usuario.nome(), usuario.email(), usuario.moeda(), usuario.fusoHorario(),
-				usuario.status(), usuario.createdAt(), usuario.updatedAt(), usuario.deactivatedAt());
+		return Usuario.reidratar(id, usuario.nome(), usuario.email(), usuario.dataNascimento(), usuario.status(),
+				usuario.createdAt(), usuario.updatedAt(), usuario.deactivatedAt());
 	}
 }

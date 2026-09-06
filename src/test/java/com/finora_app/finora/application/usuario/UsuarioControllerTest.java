@@ -100,4 +100,18 @@ class UsuarioControllerTest {
 		org.mockito.Mockito.verify(service).consultarPerfil(id);
 		org.mockito.Mockito.verify(service).atualizarPerfil(org.mockito.ArgumentMatchers.eq(id), any());
 	}
+
+	@Test
+	void deveInativarApenasAContaAutenticada() throws Exception {
+		UUID id = UUID.randomUUID();
+		when(service.inativarConta(any(), any())).thenReturn(new InativacaoContaResponse("INATIVO", null));
+		SecurityContextHolder.getContext().setAuthentication(
+				new UsernamePasswordAuthenticationToken(id, null));
+
+		mockMvc.perform(post("/api/users/me/deactivate").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"confirmar\":true}"))
+				.andExpect(status().isOk())
+				.andExpect(content().json("{\"status\":\"INATIVO\"}"));
+		org.mockito.Mockito.verify(service).inativarConta(org.mockito.ArgumentMatchers.eq(id), any());
+	}
 }

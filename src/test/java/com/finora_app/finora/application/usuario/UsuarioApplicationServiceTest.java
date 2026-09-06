@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
 
@@ -164,5 +165,29 @@ class UsuarioApplicationServiceTest {
 		assertThrows(com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException.class,
 				() -> service.atualizarPerfil(id, new AtualizarPerfilRequest("Outro Nome", "BRL", "America/Sao_Paulo")));
 		verify(repository, never()).atualizar(any());
+	}
+
+	@Test
+	void deveInativarContaConfirmadaERegistrarMomento() {
+		UUID id = UUID.randomUUID();
+		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
+				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				AGORA, AGORA, null);
+		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
+
+		InativacaoContaResponse response = service.inativarConta(id, new InativarContaRequest(true));
+
+		assertEquals("INATIVO", response.status());
+		assertEquals(AGORA, response.deactivatedAt());
+		verify(repository).inativar(usuario, AGORA);
+	}
+
+	@Test
+	void deveRejeitarInativacaoSemConfirmacaoSemPersistir() {
+		UUID id = UUID.randomUUID();
+
+		assertThrows(IllegalArgumentException.class, () -> service.inativarConta(id, new InativarContaRequest(false)));
+		assertThrows(IllegalArgumentException.class, () -> service.inativarConta(id, null));
+		verifyNoInteractions(repository);
 	}
 }

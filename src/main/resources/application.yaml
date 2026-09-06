@@ -16,3 +16,9 @@ security:
   jwt:
     secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:PT15M}
+finora:
+  test-user:
+    enabled: ${FINORA_TEST_USER_ENABLED:false}
+    name: ${FINORA_TEST_USER_NAME:Usuario de Teste}
+    email: ${FINORA_TEST_USER_EMAIL:usuario.teste@finora.local}
+    password: ${FINORA_TEST_USER_PASSWORD:}

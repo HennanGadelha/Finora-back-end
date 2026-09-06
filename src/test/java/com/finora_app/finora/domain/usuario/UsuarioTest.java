@@ -7,23 +7,24 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
 class UsuarioTest {
 
 	private static final Instant CRIACAO = Instant.parse("2026-01-01T10:00:00Z");
+	private static final LocalDate DATA_NASCIMENTO = LocalDate.of(1990, 1, 1);
 
 	@Test
 	void deveCriarUsuarioAtivoComValoresPadrao() {
-		Usuario usuario = Usuario.criar("Pessoa Finora", "Pessoa@Exemplo.com", CRIACAO);
+		Usuario usuario = Usuario.criar("Pessoa Finora", "Pessoa@Exemplo.com", DATA_NASCIMENTO, CRIACAO);
 
 		assertNotNull(usuario.id());
 		assertEquals("pessoa@exemplo.com", usuario.email().valor());
 		assertEquals(StatusUsuario.ATIVO, usuario.status());
 		assertEquals(true, usuario.estaAtivo());
-		assertEquals("BRL", usuario.moeda());
-		assertEquals("America/Sao_Paulo", usuario.fusoHorario());
+		assertEquals(DATA_NASCIMENTO, usuario.dataNascimento());
 		assertEquals(CRIACAO, usuario.createdAt());
 		assertEquals(CRIACAO, usuario.updatedAt());
 		assertNull(usuario.deactivatedAt());
@@ -31,10 +32,10 @@ class UsuarioTest {
 
 	@Test
 	void deveAtualizarSomenteDadosCadastraisPermitidos() {
-		Usuario usuario = Usuario.criar("Nome Inicial", "pessoa@exemplo.com", CRIACAO);
+		Usuario usuario = Usuario.criar("Nome Inicial", "pessoa@exemplo.com", DATA_NASCIMENTO, CRIACAO);
 		Instant atualizacao = Instant.parse("2026-01-02T10:00:00Z");
 
-		usuario.atualizarDadosCadastrais("Nome Atualizado", "BRL", "America/Sao_Paulo", atualizacao);
+		usuario.atualizarDadosCadastrais("Nome Atualizado", DATA_NASCIMENTO.plusDays(1), atualizacao);
 
 		assertEquals("Nome Atualizado", usuario.nome());
 		assertEquals("pessoa@exemplo.com", usuario.email().valor());
@@ -44,24 +45,22 @@ class UsuarioTest {
 
 	@Test
 	void deveRejeitarDadosCadastraisInvalidos() {
-		Usuario usuario = Usuario.criar("Nome Inicial", "pessoa@exemplo.com", CRIACAO);
+		Usuario usuario = Usuario.criar("Nome Inicial", "pessoa@exemplo.com", DATA_NASCIMENTO, CRIACAO);
 		String nomeMuitoLongo = "N".repeat(121);
 
 		assertThrows(ErroDeDominioException.class,
-				() -> usuario.atualizarDadosCadastrais("", "BRL", "America/Sao_Paulo", CRIACAO));
+				() -> usuario.atualizarDadosCadastrais("", DATA_NASCIMENTO, CRIACAO));
 		assertThrows(ErroDeDominioException.class,
-				() -> usuario.atualizarDadosCadastrais(nomeMuitoLongo, "BRL", "America/Sao_Paulo", CRIACAO));
+				() -> usuario.atualizarDadosCadastrais(nomeMuitoLongo, DATA_NASCIMENTO, CRIACAO));
 		assertThrows(ErroDeDominioException.class,
-				() -> usuario.atualizarDadosCadastrais("Nome", "USD", "America/Sao_Paulo", CRIACAO));
-		assertThrows(ErroDeDominioException.class,
-				() -> usuario.atualizarDadosCadastrais("Nome", "BRL", "UTC", CRIACAO));
+				() -> usuario.atualizarDadosCadastrais("Nome", null, CRIACAO));
 		assertEquals("Nome Inicial", usuario.nome());
 		assertEquals(CRIACAO, usuario.updatedAt());
 	}
 
 	@Test
 	void deveInativarContaAtivaRegistrandoData() {
-		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", CRIACAO);
+		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", DATA_NASCIMENTO, CRIACAO);
 		Instant inativacao = Instant.parse("2026-01-03T10:00:00Z");
 
 		usuario.inativar(inativacao);
@@ -74,12 +73,13 @@ class UsuarioTest {
 
 	@Test
 	void deveRejeitarEmailNuloNaCriacao() {
-		assertThrows(ErroDeDominioException.class, () -> Usuario.criar("Pessoa", (Email) null, CRIACAO));
+		assertThrows(ErroDeDominioException.class,
+				() -> Usuario.criar("Pessoa", (Email) null, DATA_NASCIMENTO, CRIACAO));
 	}
 
 	@Test
 	void naoDeveInativarContaMaisDeUmaVez() {
-		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", CRIACAO);
+		Usuario usuario = Usuario.criar("Pessoa Finora", "pessoa@exemplo.com", DATA_NASCIMENTO, CRIACAO);
 		usuario.inativar(Instant.parse("2026-01-03T10:00:00Z"));
 
 		assertThrows(ErroDeDominioException.class,
@@ -89,24 +89,24 @@ class UsuarioTest {
 	@Test
 	void deveRejeitarCamposObrigatoriosAusentes() {
 		assertThrows(ErroDeDominioException.class,
-				() -> Usuario.criar(null, "pessoa@exemplo.com", CRIACAO));
+				() -> Usuario.criar(null, "pessoa@exemplo.com", DATA_NASCIMENTO, CRIACAO));
 		assertThrows(ErroDeDominioException.class,
-				() -> Usuario.criar("Pessoa", "pessoa@exemplo.com", null));
+				() -> Usuario.criar("Pessoa", "pessoa@exemplo.com", null, CRIACAO));
 	}
 
 	@Test
 	void deveRejeitarEstadoPersistidoInconsistente() {
 		Email email = new Email("pessoa@exemplo.com");
 
-		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
-				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
-		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", null, "BRL",
-				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
-		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
-				"America/Sao_Paulo", null, CRIACAO, CRIACAO, null));
-		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
-				"America/Sao_Paulo", StatusUsuario.ATIVO, CRIACAO, CRIACAO, CRIACAO));
-		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email, "BRL",
-				"America/Sao_Paulo", StatusUsuario.INATIVO, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email,
+				DATA_NASCIMENTO, StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", null,
+				DATA_NASCIMENTO, StatusUsuario.ATIVO, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email,
+				DATA_NASCIMENTO, null, CRIACAO, CRIACAO, null));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email,
+				DATA_NASCIMENTO, StatusUsuario.ATIVO, CRIACAO, CRIACAO, CRIACAO));
+		assertThrows(ErroDeDominioException.class, () -> Usuario.reidratar(null, "Pessoa", email,
+				DATA_NASCIMENTO, StatusUsuario.INATIVO, CRIACAO, CRIACAO, null));
 	}
 }

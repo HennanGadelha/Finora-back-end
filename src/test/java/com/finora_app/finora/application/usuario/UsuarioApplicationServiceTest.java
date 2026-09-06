@@ -12,6 +12,7 @@ import static org.mockito.Mockito.doThrow;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +34,7 @@ import com.finora_app.finora.security.SenhaService;
 class UsuarioApplicationServiceTest {
 
 	private static final Instant AGORA = Instant.parse("2026-01-01T10:00:00Z");
+	private static final LocalDate DATA_NASCIMENTO = LocalDate.of(1990, 1, 1);
 
 	@Mock
 	private UsuarioRepository repository;
@@ -53,7 +55,7 @@ class UsuarioApplicationServiceTest {
 	void deveCadastrarUsuarioAtivoComHashSemPersistirSenha() {
 		when(senhaService.gerarHash("senha-segura")).thenReturn("$2a$hash");
 		CadastroUsuarioResponse response = service.cadastrar(
-				new CadastroUsuarioRequest("Pessoa Finora", "PESSOA@EXEMPLO.COM", "senha-segura"));
+				new CadastroUsuarioRequest("Pessoa Finora", "PESSOA@EXEMPLO.COM", "senha-segura", DATA_NASCIMENTO));
 
 		assertEquals("pessoa@exemplo.com", response.email());
 		assertEquals("ATIVO", response.status());
@@ -68,14 +70,16 @@ class UsuarioApplicationServiceTest {
 			.when(repository).salvar(any(Usuario.class), eq("hash"));
 
 		assertThrows(EmailJaCadastradoException.class, () -> service.cadastrar(
-				new CadastroUsuarioRequest("Pessoa", "pessoa@exemplo.com", "senha-segura")));
+				new CadastroUsuarioRequest("Pessoa", "pessoa@exemplo.com", "senha-segura", DATA_NASCIMENTO)));
 	}
 
 	@Test
 	void deveRejeitarCadastroComCamposObrigatoriosAusentes() {
 		assertThrows(IllegalArgumentException.class, () -> service.cadastrar(null));
 		assertThrows(IllegalArgumentException.class, () -> service.cadastrar(
-				new CadastroUsuarioRequest("", "pessoa@exemplo.com", "senha")));
+				new CadastroUsuarioRequest("", "pessoa@exemplo.com", "senha", DATA_NASCIMENTO)));
+		assertThrows(IllegalArgumentException.class, () -> service.cadastrar(
+				new CadastroUsuarioRequest("Pessoa", "pessoa@exemplo.com", "senha", null)));
 		verify(repository, never()).salvar(any(), any());
 	}
 
@@ -83,7 +87,7 @@ class UsuarioApplicationServiceTest {
 	void deveAutenticarUsuarioAtivoComSenhaCorreta() {
 		UUID id = UUID.randomUUID();
 		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
 				AGORA, AGORA, null);
 		when(repository.buscarPorEmail(any())).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash")));
 		when(senhaService.comparar("senha", "hash")).thenReturn(true);
@@ -103,7 +107,7 @@ class UsuarioApplicationServiceTest {
 
 		UUID id = UUID.randomUUID();
 		Usuario inativo = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.INATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.INATIVO,
 				AGORA, AGORA, AGORA);
 		when(repository.buscarPorEmail(any())).thenReturn(Optional.of(new UsuarioPersistido(inativo, "hash")));
 		assertThrows(CredenciaisInvalidasException.class,
@@ -122,7 +126,7 @@ class UsuarioApplicationServiceTest {
 	void deveConsultarPerfilSemExporHash() {
 		UUID id = UUID.randomUUID();
 		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
 				AGORA, AGORA, null);
 		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
 
@@ -130,8 +134,7 @@ class UsuarioApplicationServiceTest {
 
 		assertEquals(id, response.id());
 		assertEquals("pessoa@exemplo.com", response.email());
-		assertEquals("BRL", response.moeda());
-		assertEquals("America/Sao_Paulo", response.fusoHorario());
+		assertEquals(DATA_NASCIMENTO, response.dataNascimento());
 		assertEquals("ATIVO", response.status());
 		verify(repository).buscarPorId(id);
 	}
@@ -140,12 +143,12 @@ class UsuarioApplicationServiceTest {
 	void deveAtualizarPerfilDoUsuarioAutenticado() {
 		UUID id = UUID.randomUUID();
 		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
 				AGORA, AGORA, null);
 		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
 
 		PerfilUsuarioResponse response = service.atualizarPerfil(id,
-				new AtualizarPerfilRequest("Pessoa Atualizada", "BRL", "America/Sao_Paulo"));
+				new AtualizarPerfilRequest("Pessoa Atualizada", DATA_NASCIMENTO.plusDays(1)));
 
 		assertEquals("Pessoa Atualizada", response.nome());
 		assertEquals(AGORA, response.updatedAt());
@@ -156,14 +159,14 @@ class UsuarioApplicationServiceTest {
 	void deveRejeitarConsultaEAtualizacaoDeContaInativa() {
 		UUID id = UUID.randomUUID();
 		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.INATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.INATIVO,
 				AGORA, AGORA, AGORA);
 		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
 
 		assertThrows(com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException.class,
 				() -> service.consultarPerfil(id));
 		assertThrows(com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException.class,
-				() -> service.atualizarPerfil(id, new AtualizarPerfilRequest("Outro Nome", "BRL", "America/Sao_Paulo")));
+				() -> service.atualizarPerfil(id, new AtualizarPerfilRequest("Outro Nome", DATA_NASCIMENTO)));
 		verify(repository, never()).atualizar(any());
 	}
 
@@ -171,7 +174,7 @@ class UsuarioApplicationServiceTest {
 	void deveInativarContaConfirmadaERegistrarMomento() {
 		UUID id = UUID.randomUUID();
 		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
-				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				DATA_NASCIMENTO, com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
 				AGORA, AGORA, null);
 		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
 

@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import com.finora_app.finora.repository.usuario.EmailJaCadastradoException;
 import com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException;
@@ -24,6 +25,11 @@ public class UsuarioExceptionHandler {
 	@ExceptionHandler(IllegalArgumentException.class)
 	ResponseEntity<ErroResponse> dadosInvalidos(RuntimeException exception) {
 		return ResponseEntity.badRequest().body(new ErroResponse(exception.getMessage()));
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	ResponseEntity<ErroResponse> corpoInvalido(HttpMessageNotReadableException exception) {
+		return ResponseEntity.badRequest().body(new ErroResponse("Dados da requisicao invalidos"));
 	}
 
 	@ExceptionHandler(UsuarioNaoEncontradoException.class)

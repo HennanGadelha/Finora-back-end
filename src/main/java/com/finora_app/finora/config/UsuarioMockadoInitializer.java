@@ -3,6 +3,7 @@ package com.finora_app.finora.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import java.time.LocalDate;
 import com.finora_app.finora.application.usuario.CadastroUsuarioRequest;
 import com.finora_app.finora.application.usuario.UsuarioApplicationService;
 import com.finora_app.finora.domain.usuario.Email;
@@ -18,14 +19,16 @@ public final class UsuarioMockadoInitializer implements CommandLineRunner {
 	private final String nome;
 	private final String email;
 	private final String senha;
+	private final LocalDate dataNascimento;
 
 	public UsuarioMockadoInitializer(UsuarioApplicationService usuarioService, UsuarioRepository usuarioRepository,
-			String nome, String email, String senha) {
+			String nome, String email, String senha, LocalDate dataNascimento) {
 		this.usuarioService = usuarioService;
 		this.usuarioRepository = usuarioRepository;
 		this.nome = nome;
 		this.email = email;
 		this.senha = senha;
+		this.dataNascimento = dataNascimento;
 	}
 
 	@Override
@@ -39,7 +42,7 @@ public final class UsuarioMockadoInitializer implements CommandLineRunner {
 			return;
 		}
 
-		usuarioService.cadastrar(new CadastroUsuarioRequest(nome, email, senha));
+		usuarioService.cadastrar(new CadastroUsuarioRequest(nome, email, senha, dataNascimento));
 		LOGGER.info("event=test_user_created");
 	}
 }

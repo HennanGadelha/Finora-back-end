@@ -1,7 +1,18 @@
 package com.finora_app.finora.application.usuario;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
 
-public record CadastroUsuarioRequest(String nome, String email,
-		@Schema(accessMode = Schema.AccessMode.WRITE_ONLY) String senha) {
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.OptBoolean;
+
+@JsonIgnoreProperties(ignoreUnknown = false)
+public record CadastroUsuarioRequest(String nome, String email, String senha,
+		@JsonFormat(pattern = "dd/MM/uuuu", lenient = OptBoolean.FALSE) LocalDate dataNascimento) {
+
+	@JsonAnySetter
+	public void rejeitarCampoDesconhecido(String nome, Object valor) {
+		throw new IllegalArgumentException("Campo de requisicao desconhecido: " + nome);
+	}
 }

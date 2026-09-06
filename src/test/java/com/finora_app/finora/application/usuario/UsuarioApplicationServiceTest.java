@@ -116,4 +116,53 @@ class UsuarioApplicationServiceTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> service.autenticar(new AutenticacaoRequest("", "senha")));
 	}
+
+	@Test
+	void deveConsultarPerfilSemExporHash() {
+		UUID id = UUID.randomUUID();
+		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
+				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				AGORA, AGORA, null);
+		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
+
+		PerfilUsuarioResponse response = service.consultarPerfil(id);
+
+		assertEquals(id, response.id());
+		assertEquals("pessoa@exemplo.com", response.email());
+		assertEquals("BRL", response.moeda());
+		assertEquals("America/Sao_Paulo", response.fusoHorario());
+		assertEquals("ATIVO", response.status());
+		verify(repository).buscarPorId(id);
+	}
+
+	@Test
+	void deveAtualizarPerfilDoUsuarioAutenticado() {
+		UUID id = UUID.randomUUID();
+		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
+				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.ATIVO,
+				AGORA, AGORA, null);
+		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
+
+		PerfilUsuarioResponse response = service.atualizarPerfil(id,
+				new AtualizarPerfilRequest("Pessoa Atualizada", "BRL", "America/Sao_Paulo"));
+
+		assertEquals("Pessoa Atualizada", response.nome());
+		assertEquals(AGORA, response.updatedAt());
+		verify(repository).atualizar(usuario);
+	}
+
+	@Test
+	void deveRejeitarConsultaEAtualizacaoDeContaInativa() {
+		UUID id = UUID.randomUUID();
+		Usuario usuario = Usuario.reidratar(id, "Pessoa", new com.finora_app.finora.domain.usuario.Email("pessoa@exemplo.com"),
+				"BRL", "America/Sao_Paulo", com.finora_app.finora.domain.usuario.StatusUsuario.INATIVO,
+				AGORA, AGORA, AGORA);
+		when(repository.buscarPorId(id)).thenReturn(Optional.of(new UsuarioPersistido(usuario, "hash-secreto")));
+
+		assertThrows(com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException.class,
+				() -> service.consultarPerfil(id));
+		assertThrows(com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException.class,
+				() -> service.atualizarPerfil(id, new AtualizarPerfilRequest("Outro Nome", "BRL", "America/Sao_Paulo")));
+		verify(repository, never()).atualizar(any());
+	}
 }

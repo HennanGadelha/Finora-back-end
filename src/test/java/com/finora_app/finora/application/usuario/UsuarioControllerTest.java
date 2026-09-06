@@ -8,6 +8,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -18,6 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 
 class UsuarioControllerTest {
 
@@ -26,8 +31,10 @@ class UsuarioControllerTest {
 
 	@BeforeEach
 	void configurarMockMvc() {
+		SecurityContextHolder.clearContext();
 		mockMvc = MockMvcBuilders.standaloneSetup(new UsuarioController(service))
-				.setControllerAdvice(new UsuarioExceptionHandler()).build();
+				.setControllerAdvice(new UsuarioExceptionHandler())
+				.setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver()).build();
 	}
 
 	@Test
@@ -71,5 +78,26 @@ class UsuarioControllerTest {
 		when(service.autenticar(any())).thenThrow(new CredenciaisInvalidasException());
 		mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
 				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void deveConsultarEAtualizarSomenteOUsuarioAutenticado() throws Exception {
+		UUID id = UUID.randomUUID();
+		when(service.consultarPerfil(id)).thenReturn(new PerfilUsuarioResponse(id, "Pessoa", "pessoa@exemplo.com",
+				"BRL", "America/Sao_Paulo", "ATIVO", null, null));
+		when(service.atualizarPerfil(any(), any())).thenReturn(new PerfilUsuarioResponse(id, "Pessoa Atualizada",
+				"pessoa@exemplo.com", "BRL", "America/Sao_Paulo", "ATIVO", null, null));
+		SecurityContextHolder.getContext().setAuthentication(
+				new UsernamePasswordAuthenticationToken(id, null));
+
+		mockMvc.perform(get("/api/users/me"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(not(containsString("hash"))))
+				.andExpect(content().string(not(containsString("senha"))));
+		mockMvc.perform(put("/api/users/me").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"nome\":\"Pessoa Atualizada\",\"moeda\":\"BRL\",\"fusoHorario\":\"America/Sao_Paulo\"}"))
+				.andExpect(status().isOk());
+		org.mockito.Mockito.verify(service).consultarPerfil(id);
+		org.mockito.Mockito.verify(service).atualizarPerfil(org.mockito.ArgumentMatchers.eq(id), any());
 	}
 }

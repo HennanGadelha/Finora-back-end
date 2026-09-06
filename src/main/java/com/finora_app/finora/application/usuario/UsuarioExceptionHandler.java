@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.finora_app.finora.repository.usuario.EmailJaCadastradoException;
+import com.finora_app.finora.repository.usuario.UsuarioNaoEncontradoException;
 
 @RestControllerAdvice
 public class UsuarioExceptionHandler {
@@ -23,5 +24,10 @@ public class UsuarioExceptionHandler {
 	@ExceptionHandler(IllegalArgumentException.class)
 	ResponseEntity<ErroResponse> dadosInvalidos(RuntimeException exception) {
 		return ResponseEntity.badRequest().body(new ErroResponse(exception.getMessage()));
+	}
+
+	@ExceptionHandler(UsuarioNaoEncontradoException.class)
+	ResponseEntity<ErroResponse> usuarioNaoEncontrado(UsuarioNaoEncontradoException exception) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErroResponse("Usuario nao encontrado"));
 	}
 }

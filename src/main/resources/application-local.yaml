@@ -1,0 +1,3 @@
+finora:
+  cors:
+    enabled: true

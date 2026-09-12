@@ -17,6 +17,8 @@ security:
     secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:PT15M}
 finora:
+  cors:
+    enabled: false
   test-user:
     enabled: ${FINORA_TEST_USER_ENABLED:false}
     name: ${FINORA_TEST_USER_NAME:Usuario de Teste}
